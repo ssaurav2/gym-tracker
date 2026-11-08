@@ -12,6 +12,13 @@ import api
 
 
 class ApiTest(unittest.TestCase):
+    def test_progress_photos_are_not_exposed(self):
+        paths = self.request("GET", "/openapi.json")[1]["paths"]
+        self.assertFalse(any(path.startswith("/progress-photos") for path in paths))
+        for method, path in [("GET", "/progress-photos"), ("POST", "/progress-photos"),
+                             ("GET", "/progress-photos/1/image"), ("DELETE", "/progress-photos/1")]:
+            self.assertEqual(self.request(method, path)[0], 404)
+
     def test_workflow(self):
         with tempfile.TemporaryDirectory() as folder:
             original = api.DB_PATH

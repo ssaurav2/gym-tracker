@@ -48,17 +48,20 @@ add weight or reps.
 ## Current state
 Built: terminal interface; React exercise creation and set logging with last entry;
 rest timer; History grouped by day with filtering, editing, and confirmed deletion.
-Pump Progress includes JPEG/PNG upload, optional view categories, chronological
-sorting, larger viewing, and confirmed deletion. Access is restricted to this
-computer until authentication is designed.
+On the multi-user branch, Pump Progress is deferred: its navigation entry and
+API routes are disconnected. Source modules, photo files/folder, and the existing
+SQLite table are preserved. Do not re-enable or migrate them in this pass.
 The main-page subheading rotates through five user-provided quotes every 15 seconds.
 ## Long-term goal
 Eventually usable by other people (multiple users with accounts).
-Not in this pass: no auth and no user_id yet. But don't hardcode
-single-user assumptions into the API design. UI is functional and
-plain for now; visual polish is a separate later pass.
+On the multi-user branch, accounts and user_id ownership are planned but not
+implemented yet. The schema is approved; a commented SQL migration has been
+written for the user to review and execute manually. Do not run it automatically.
+Keep the existing UI and avoid single-user assumptions in the API design.
 
-## Pump Progress Gallery
+## Pump Progress Gallery (deferred on multi-user branch)
+
+The following is retained future context, not work to implement in this pass.
 
 Add a private "Pump Progress" section where the user can upload physique progress photos and view them in a chronological gallery.
 
@@ -114,3 +117,11 @@ Add a private "Pump Progress" section where the user can upload physique progres
   can only see and change their own rows.
 - Ask before changing the schema, and migrate my existing SQLite data
   with a one-time script I can review. Never run it on the only copy.
+  - Progress photos are deferred. Don't build or migrate them in the
+  multi-user version. Remove the Pump Progress tab and photo endpoints
+  from the deployed app, but don't delete any photo files.
+
+Preparation status: see MULTI_USER_PLAN.md for the option B hosting proposal,
+verified local database backup, and approved database design. The SQL file in
+supabase/migrations/ is written but has not been executed. No cloud resources
+or live schema changes have been made.

@@ -7,8 +7,6 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from progress_photos import create_router, PhotoPrivacyMiddleware
-
 DB_PATH = Path(__file__).resolve().parent / "gym_tracker.db"
 app = FastAPI(title="Gym Tracker API")
 
@@ -121,7 +119,3 @@ def delete_set(set_id: int, db=Depends(get_db)):
     with db:
         db.execute("DELETE FROM sets WHERE id = ?", (set_id,))
     return Response(status_code=204)
-
-
-app.add_middleware(PhotoPrivacyMiddleware)
-app.include_router(create_router(get_db))

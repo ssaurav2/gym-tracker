@@ -1,4 +1,4 @@
-"""Photo requests use disposable files and a temporary SQLite database."""
+"""Test the deferred photo module in isolation; api.app exposes no photo routes."""
 from contextlib import closing
 import asyncio
 import io
@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 from urllib.parse import urlsplit
 
 from PIL import Image
+from fastapi import FastAPI
 
 import api
 import progress_photos
@@ -19,6 +20,9 @@ from migrate_progress_photos import migrate
 
 class PhotoApiTest(unittest.TestCase):
     def setUp(self):
+        self.photo_app = FastAPI()
+        self.photo_app.add_middleware(progress_photos.PhotoPrivacyMiddleware)
+        self.photo_app.include_router(progress_photos.create_router(api.get_db))
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.database_patch = patch.object(api, 'DB_PATH', Path(self.folder.name) / 'test.db')
@@ -47,7 +51,7 @@ class PhotoApiTest(unittest.TestCase):
             async def send(message):
                 messages.append(message)
 
-            await api.app({'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1',
+            await self.photo_app({'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1',
                            'method': method, 'scheme': 'http', 'path': target.path, 'raw_path': target.path.encode(),
                            'query_string': target.query.encode(), 'headers': [(b'host', host.encode()), (b'content-type', content_type.encode()), *extra_headers],
                            'client': (client, 1), 'server': ('localhost', 80)}, receive, send)

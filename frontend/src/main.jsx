@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import ProgressGallery from './ProgressGallery';
 import { QUOTES } from './quotes';
 
 async function request(path, body, method = body === undefined ? 'GET' : 'POST') {
@@ -206,9 +205,9 @@ function App() {
     <header className="brand"><span className="brand-mark"><Icon name="lift" /></span><span className="brand-name">Incline</span><span className="brand-tag">Consistency moves mountains</span></header>
     <div className="landscape-header" aria-hidden="true" />
     <main>
-      {screen !== 'photos' && <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>}
+      <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>
       {loadError && <div className="error-banner" role="alert">{loadError}<button type="button" className="text-button" onClick={loadExercises}>Retry</button></div>}
-      {screen === 'photos' ? <ProgressGallery /> : screen === 'log' ? <>
+      {screen === 'log' ? <>
         <form className="card log-card" onSubmit={logSet}>
           <div className="section-heading"><h2>Log a set</h2><span className="today-dot">Today</span></div>
           <label htmlFor="exercise">Exercise</label>
@@ -228,7 +227,7 @@ function App() {
       </>}
       <div hidden={screen !== 'log'}><RestTimer /></div>
     </main>
-    <nav className="bottom-nav" aria-label="Main navigation">{[['log', 'lift', 'Log a Set'], ['exercises', 'list', 'Exercises'], ['history', 'history', 'History'], ['photos', 'photos', 'Pump Progress']].map(([key, icon, label]) => <button type="button" key={key} className={screen === key ? 'nav-item active' : 'nav-item'} aria-current={screen === key ? 'page' : undefined} onClick={() => setScreen(key)}><span className="nav-icon"><Icon name={icon} /></span><span>{label}</span></button>)}</nav>
+    <nav className="bottom-nav" aria-label="Main navigation">{[['log', 'lift', 'Log a Set'], ['exercises', 'list', 'Exercises'], ['history', 'history', 'History']].map(([key, icon, label]) => <button type="button" key={key} className={screen === key ? 'nav-item active' : 'nav-item'} aria-current={screen === key ? 'page' : undefined} onClick={() => setScreen(key)}><span className="nav-icon"><Icon name={icon} /></span><span>{label}</span></button>)}</nav>
   </div>;
 }
 

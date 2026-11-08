@@ -6,3 +6,9 @@ __pycache__/
 # Private physique photos and generated build output
 private/
 frontend/dist/
+
+# Local backups and credentials stay out of Git
+backups/
+.env
+.env.*
+!.env.example
