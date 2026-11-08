@@ -100,7 +100,7 @@ BEGIN
         -- Clear the legacy sub setting before setting modern claims. No session state.
         PERFORM set_config('request.jwt.claim.sub', '', true);
         PERFORM set_config('request.jwt.claims', json_build_object('sub', mine.user_id, 'role', 'authenticated')::text, true);
-        IF auth.uid() IS DISTINCT FROM mine.user_id THEN
+        IF ((nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid) IS DISTINCT FROM mine.user_id THEN
             RAISE EXCEPTION 'FAIL: simulated identity does not match.';
         END IF;
 

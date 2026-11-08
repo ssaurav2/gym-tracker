@@ -272,3 +272,13 @@ Stage 1 local validation: `python -m unittest discover -v` passed all 9 tests;
 manual SQL isolation tests have only been reviewed as text, never executed.
 Gate 1 is waiting for the user's explicit confirmation; no later-stage code has
 been written and no packages were installed in Stage 1.
+
+
+Stage 1 Gate 1 repair: hosted Supabase does not let postgres grant auth-schema
+USAGE to the restricted role. Removed that ineffective grant and auth.uid() calls
+from runtime defaults, policies, and test identity checks. The existing SQL now
+reads the verified UUID subject directly from transaction-local request.jwt.claims.
+This changes existing SQL logic, not the owner-only security design; no new schema
+objects or role memberships are added. The matching manual repair for already
+created tables is in GATE_1_SETUP.md; Codex has not executed it. User reported
+schema_access=false/helper_access=true; Gate 1 is still pending, Stage 2 unstarted.

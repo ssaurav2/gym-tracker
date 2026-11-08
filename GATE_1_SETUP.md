@@ -124,3 +124,58 @@ No unverified JWT claims will be used as an account identity.
 Reply **both SQL files ran OK** (and optionally the signing algorithm only).
 Do not send passwords, database URLs, access tokens, or keys. That reply opens
 Gate 1. Until then, Stage 2 and all later stages remain unstarted.
+
+
+## Gate 1 repair: custom role cannot use auth.uid()
+
+Hosted Supabase protects its auth schema. `postgres` cannot grant its schema
+access onward to incline_api, even if the GRANT appears to succeed. Therefore
+`schema_access = false` and `helper_access = true` are expected for this role.
+The earlier suggestion to repeat those grants was incorrect. Do not grant broad
+roles or disable RLS. The corrected migration and test no longer call auth.uid()
+as the restricted role: they read the verified sub from transaction-local claims.
+[Supabase's explanation and claims-based solution](https://supabase.com/kb/troubleshooting/permission-errors-when-granting-custom-roles-access-to-the-auth-schema-9e32e7).
+
+If the initial migration was already applied, do NOT rerun it. Instead:
+
+1. In `incline-dev`, open **SQL Editor → New query**, with role **postgres**.
+2. If the previous test left a failed transaction, run `ROLLBACK; RESET ROLE;`
+   separately first. A warning that no transaction is in progress is harmless.
+3. Paste and run this complete repair. It changes only the defaults and eight
+   existing policies to match the corrected initial migration; it adds no tables,
+   functions, or role memberships and does not delete or recreate any records.
+
+```sql
+-- Repair existing Incline tables only. Run as postgres in incline-dev.
+-- No data is deleted; RLS stays enabled. Run this entire block.
+BEGIN;
+ALTER TABLE public.exercises ALTER COLUMN user_id SET DEFAULT ((nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid);
+ALTER POLICY exercises_select_own ON public.exercises
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY exercises_insert_own ON public.exercises
+    WITH CHECK (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY exercises_update_own ON public.exercises
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid))
+    WITH CHECK (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY exercises_delete_own ON public.exercises
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER TABLE public.sets ALTER COLUMN user_id SET DEFAULT ((nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid);
+ALTER POLICY sets_select_own ON public.sets
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY sets_insert_own ON public.sets
+    WITH CHECK (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY sets_update_own ON public.sets
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid))
+    WITH CHECK (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+ALTER POLICY sets_delete_own ON public.sets
+    USING (user_id = (SELECT (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid));
+COMMIT;
+```
+
+4. Expect **Success. No rows returned**.
+5. Open the UPDATED local file `supabase/tests/202611080002_two_user_isolation.sql`.
+   Copy it into a new SQL editor query; do not reuse the old editor copy.
+6. Replace the two UUID placeholders with the same two dev User UIDs, in the editor
+   only, and run the whole file. Expect **PASS: all Stage 1 isolation checks passed**.
+7. Gate 1 stays closed until you report success. The schema-access diagnostic can
+   remain false; access to the managed auth schema is no longer required.
