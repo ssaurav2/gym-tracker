@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="600" y1="0" x2="600" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#71828a" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#111412"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="600" y1="100" x2="600" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111412" stop-opacity="0"/>
+      <stop offset="1" stop-color="#111412"/>
+    </linearGradient>
+    <linearGradient id="edges">
+      <stop stop-color="#111412"/>
+      <stop offset=".15" stop-color="#111412" stop-opacity="0"/>
+      <stop offset=".85" stop-color="#111412" stop-opacity="0"/>
+      <stop offset="1" stop-color="#111412"/>
+    </linearGradient>
+    <filter id="mist" x="-30%" y="-100%" width="160%" height="300%">
+      <feGaussianBlur stdDeviation="15"/>
+    </filter>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1200v280H0z"/>
+  <path fill="#5e7178" fill-opacity=".55" d="m0 141 70-30 45 9 95-78 49 35 27-8 78 61 59-19 76 26 75-57 47 21 44-50 57 40 36-12 94 72 63-30 67 22 63-43 60 34v146H0z"/>
+  <path fill="#394e53" d="m0 180 87-35 61 25 102-67 49 36 39-13 86 58 80-22 63 24 98-71 52 39 26-9 77 51 51-30 68 21 63-57 74 40 24-8v113H0z"/>
+  <g filter="url(#mist)" fill="#a4b1b4" fill-opacity=".3">
+    <ellipse cx="358" cy="154" rx="340" ry="15"/>
+    <ellipse cx="872" cy="130" rx="280" ry="12"/>
+    <ellipse cx="710" cy="197" rx="430" ry="19"/>
+  </g>
+  <path fill="#1b2929" d="m0 220 86-22 78 11 99-39 50 13 36-7 90 52 73-19 59 11 106-35 70 27 78-54 62 37 53-11 66 34 71-25 23 7v80H0z"/>
+  <path fill="url(#fade)" d="M0 0h1200v280H0z"/>
+  <path fill="url(#edges)" d="M0 0h1200v280H0z"/>
+</svg>

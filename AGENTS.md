@@ -16,15 +16,15 @@ add weight or reps.
 - Keep it simple. "Most recent entry" means literally that, with no
   warm-up filtering or smart logic.
 - Design references are in design/. Read design-notes.md before any UI work.
-- add a rest timer
+- Rest timer runs in the browser.
 
 ## Tech
 - Python + SQLite (gym_tracker.db). Plain sqlite3, no ORM.
-- Tables: exercises (id, name) and sets (id, exercise_id, weight, reps, date).
+- Tables: exercises (id, name), sets (id, exercise_id, weight, reps, date), and progress_photos (id, file_path, uploaded_at, category).
 - Files: database_setup.py (run once), app.py (terminal menu + functions).
-- Planned later: a JavaScript/React frontend talking to a Python backend.
+- React frontend in frontend/, talking to api.py through the existing development forwarding setup.
+- Progress photos: progress_photos.py routes and private/progress-photos/ files; additive table setup in migrate_progress_photos.py.
 
-## How to work with me (important)
 ## How to work with me
 - Move fast. You can make multi-step changes and write whole features,
   especially frontend and styling.
@@ -46,16 +46,19 @@ add weight or reps.
 - Keep summaries short, and don't assume I already know a concept.
 
 ## Current state
-Built: add_exercise, view_exercises, log_set, get_cursor helper,
-terminal menu.
-Next: show the last entry for an exercise, view logged sets, edit/delete.
+Built: terminal interface; React exercise creation and set logging with last entry;
+rest timer; History grouped by day with filtering, editing, and confirmed deletion.
+Pump Progress includes JPEG/PNG upload, optional view categories, chronological
+sorting, larger viewing, and confirmed deletion. Access is restricted to this
+computer until authentication is designed.
+The main-page subheading rotates through five user-provided quotes every 15 seconds.
 ## Long-term goal
 Eventually usable by other people (multiple users with accounts).
 Not in this pass: no auth and no user_id yet. But don't hardcode
 single-user assumptions into the API design. UI is functional and
 plain for now; visual polish is a separate later pass.
 
-## Planned feature: Pump Progress Gallery
+## Pump Progress Gallery
 
 Add a private "Pump Progress" section where the user can upload physique progress photos and view them in a chronological gallery.
 
@@ -77,6 +80,8 @@ Add a private "Pump Progress" section where the user can upload physique progres
 
 - Treat physique photos as sensitive personal data.
 - Never expose uploaded photos through a public URL by default.
+- The API and Vite enforce local-only photo access; future proxies must preserve this restriction until authentication is added.
+- Current uploads are capped at 10 MB and 24 megapixels, converted to JPEG, resized to fit 2048 × 2048, and stripped of embedded metadata.
 - Store image files outside the SQLite database; store only the file path, date, and category in SQLite.
 - Validate file type and size before saving.
 - Use generated filenames instead of the original filename.
@@ -98,3 +103,14 @@ Add a private "Pump Progress" section where the user can upload physique progres
 - Add a timeline slider.
 - Add optional private measurements later.
 - Add encrypted cloud storage only after accounts and authentication exist.
+
+## Multi-user plan
+- Database and login: Supabase (Postgres + Supabase Auth). Don't build
+  my own password system.
+- Frontend hosting: Vercel.
+- Never put the Supabase service_role key in the frontend or in git.
+  Secrets go in .env (gitignored) and Vercel environment variables.
+- Every table must have Row Level Security on, with policies so a user
+  can only see and change their own rows.
+- Ask before changing the schema, and migrate my existing SQLite data
+  with a one-time script I can review. Never run it on the only copy.

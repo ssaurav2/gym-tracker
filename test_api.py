@@ -1,4 +1,5 @@
 """Exercise the ASGI API with an isolated database and no extra test packages."""
+from contextlib import closing
 import asyncio
 import json
 import sqlite3
@@ -16,7 +17,7 @@ class ApiTest(unittest.TestCase):
             original = api.DB_PATH
             api.DB_PATH = Path(folder) / "test.db"
             try:
-                with sqlite3.connect(api.DB_PATH) as db:
+                with closing(sqlite3.connect(api.DB_PATH)) as db:
                     db.executescript("""
                         CREATE TABLE exercises (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
                         CREATE TABLE sets (id INTEGER PRIMARY KEY AUTOINCREMENT, exercise_id INTEGER NOT NULL,

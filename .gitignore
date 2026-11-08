@@ -2,3 +2,7 @@ node_modules/
 *.db
 .venv/
 __pycache__/
+
+# Private physique photos and generated build output
+private/
+frontend/dist/

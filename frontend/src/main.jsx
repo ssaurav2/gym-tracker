@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import ProgressGallery from './ProgressGallery';
+import { QUOTES } from './quotes';
 
 async function request(path, body, method = body === undefined ? 'GET' : 'POST') {
   const response = await fetch(path, {
@@ -15,13 +17,13 @@ async function request(path, body, method = body === undefined ? 'GET' : 'POST')
 
 function Icon({ name }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {name === 'history' ? <><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2" /></> : name === 'lift' ? <><path d="m6 6 12 12M4 8l4-4M2 6l4-4m10 18 4-4m-2 6 4-4M5 11l6-6m2 14 6-6" /></> : name === 'list' ? <><rect x="5" y="4" width="15" height="17" rx="3" /><path d="M9 3h7v4H9zm0 8h7m-7 5h7" /></> : <><circle cx="12" cy="13" r="8" /><path d="M12 9v5l3 2M9 2h6m-3 0v3" /></>}
+    {name === 'arrow-up-right' ? <path d="M6 18 18 6M6 6h12v12" /> : name === 'photos' ? <><rect x="3" y="4" width="18" height="16" rx="3" /><circle cx="8" cy="9" r="1" /><path d="m3 17 5-5 4 4 3-3 6 6" /></> : name === 'history' ? <><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2" /></> : name === 'lift' ? <><path d="m6 6 12 12M4 8l4-4M2 6l4-4m10 18 4-4m-2 6 4-4M5 11l6-6m2 14 6-6" /></> : name === 'list' ? <><rect x="5" y="4" width="15" height="17" rx="3" /><path d="M9 3h7v4H9zm0 8h7m-7 5h7" /></> : <><circle cx="12" cy="13" r="8" /><path d="M12 9v5l3 2M9 2h6m-3 0v3" /></>}
   </svg>;
 }
 
 function RestTimer() {
-  const [duration, setDuration] = useState(90);
-  const [remaining, setRemaining] = useState(90);
+  const [duration, setDuration] = useState(120);
+  const [remaining, setRemaining] = useState(120);
   const [running, setRunning] = useState(false);
   const deadline = useRef(0);
   const [finished, setFinished] = useState(false);
@@ -47,7 +49,7 @@ function RestTimer() {
     <div className="timer-row"><span className="timer-digits" role="timer" aria-label={`${remaining} seconds remaining`}>{Math.floor(remaining / 60)}<span>:</span>{String(remaining % 60).padStart(2, '0')}</span>
       <div className="timer-actions"><button type="button" className="small-button" onClick={toggle}>{running ? 'Pause' : remaining < duration && remaining > 0 ? 'Resume' : 'Start'}</button><button type="button" className="text-button" onClick={() => { setRunning(false); setRemaining(duration); setFinished(false); }}>Reset</button></div>
     </div>
-    <div className="timer-presets" aria-label="Rest duration">{[60, 90, 120].map(seconds => <button type="button" key={seconds} className={duration === seconds ? 'chip selected' : 'chip'} aria-pressed={duration === seconds} onClick={() => { setDuration(seconds); setRemaining(seconds); setRunning(false); setFinished(false); }}>{seconds === 60 ? '1 min' : seconds === 90 ? '1.5 min' : '2 min'}</button>)}</div>
+    <div className="timer-presets" aria-label="Rest duration">{[60, 120, 180].map(seconds => <button type="button" key={seconds} className={duration === seconds ? 'chip selected' : 'chip'} aria-pressed={duration === seconds} onClick={() => { setDuration(seconds); setRemaining(seconds); setRunning(false); setFinished(false); }}>{seconds === 60 ? '1 min' : `${seconds / 60} mins`}</button>)}</div>
     <span className="sr-only" role="status">{finished ? 'Rest complete. Ready for your next set.' : ''}</span>
     {finished && <p className="timer-complete">Rest complete. You’re up.</p>}
   </section>;
@@ -129,6 +131,16 @@ function History({ exercises, onChange }) {
   </section>;
 }
 
+function RotatingQuote() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (QUOTES.length < 2) return;
+    const interval = setInterval(() => setIndex(value => (value + 1) % QUOTES.length), 15000);
+    return () => clearInterval(interval);
+  }, []);
+  return <span className="rotating-quote">{QUOTES[index] || 'A little stronger, one set at a time.'}</span>;
+}
+
 function App() {
   const [screen, setScreen] = useState('log');
   const [exercises, setExercises] = useState([]);
@@ -191,11 +203,12 @@ function App() {
     finally { setAdding(false); }
   }
   return <div className="app-shell">
-    <header className="brand"><span className="brand-mark"><Icon name="lift" /></span><span>GYM<span className="brand-light">TRACKER</span></span><span className="brand-tag">ONE SET AT A TIME</span></header>
+    <header className="brand"><span className="brand-mark"><Icon name="lift" /></span><span className="brand-name">Incline</span><span className="brand-tag">Consistency moves mountains</span></header>
+    <div className="landscape-header" aria-hidden="true" />
     <main>
-      <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? 'A little stronger, one set at a time.' : screen === 'history' ? 'Your logged sets, newest first.' : 'Keep your go-to movements close.'}</p></div>
+      {screen !== 'photos' && <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>}
       {loadError && <div className="error-banner" role="alert">{loadError}<button type="button" className="text-button" onClick={loadExercises}>Retry</button></div>}
-      {screen === 'log' ? <>
+      {screen === 'photos' ? <ProgressGallery /> : screen === 'log' ? <>
         <form className="card log-card" onSubmit={logSet}>
           <div className="section-heading"><h2>Log a set</h2><span className="today-dot">Today</span></div>
           <label htmlFor="exercise">Exercise</label>
@@ -207,15 +220,15 @@ function App() {
           <div className="input-pair"><div><label htmlFor="weight">Weight</label><input id="weight" type="number" inputMode="decimal" min="0.01" step="any" placeholder="0" value={weight} onChange={event => { setWeight(event.target.value); setLogMessage(''); }} required /></div><div><label htmlFor="reps">Reps</label><input id="reps" type="number" inputMode="numeric" min="1" step="1" placeholder="0" value={reps} onChange={event => { setReps(event.target.value); setLogMessage(''); }} required /></div></div>
           <p className="field-hint">Use your usual weight unit consistently.</p>
           {logError && <p className="error" role="alert">{logError}</p>}{logMessage && <p className="success" role="status">{logMessage}</p>}
-          <button className="primary-button" disabled={saving || !selected || loading || !weight || !reps}>{saving ? 'Logging…' : 'Log Set'}<span aria-hidden="true">↗</span></button>
+          <button className="primary-button" disabled={saving || !selected || loading || !weight || !reps}>{saving ? 'Logging…' : 'Log Set'}<Icon name="arrow-up-right" /></button>
         </form>
       </> : screen === 'history' ? <History exercises={exercises} onChange={() => setRefresh(value => value + 1)} /> : <>
         <form className="card" onSubmit={addExercise}><h2>Add an exercise</h2><label htmlFor="new-exercise">Exercise name</label><input id="new-exercise" placeholder="e.g. Bench Press" maxLength={120} value={name} onChange={event => { setName(event.target.value); setAddMessage(''); }} required />{addError && <p className="error" role="alert">{addError}</p>}{addMessage && <p className="success" role="status">{addMessage}</p>}<button className="primary-button add-button" disabled={adding || loading || Boolean(loadError) || !name.trim()}>{adding ? 'Adding…' : 'Add Exercise'}<span aria-hidden="true">+</span></button></form>
-        <section className="exercise-section"><div className="section-heading"><h2>Your exercises</h2><span className="count">{exercises.length}</span></div>{loading ? <p className="muted" role="status">Loading exercises…</p> : !exercises.length ? <div className="card empty-list"><Icon name="lift" /><h3>Your list starts here.</h3><p className="muted">Add your first exercise above.</p></div> : <ul className="exercise-list">{exercises.map((exercise, index) => <li key={exercise.id}><span className="exercise-number">{String(index + 1).padStart(2, '0')}</span><span className="exercise-name">{exercise.name}</span><button type="button" className="exercise-go" aria-label={`Log a set of ${exercise.name}`} onClick={() => { setSelected(String(exercise.id)); selectionVersion.current += 1; setLogMessage(''); setLogError(''); setScreen('log'); }}>↗</button></li>)}</ul>}</section>
+        <section className="exercise-section"><div className="section-heading"><h2>Your exercises</h2><span className="count">{exercises.length}</span></div>{loading ? <p className="muted" role="status">Loading exercises…</p> : !exercises.length ? <div className="card empty-list"><Icon name="lift" /><h3>Your list starts here.</h3><p className="muted">Add your first exercise above.</p></div> : <ul className="exercise-list">{exercises.map((exercise, index) => <li key={exercise.id}><span className="exercise-number">{String(index + 1).padStart(2, '0')}</span><span className="exercise-name">{exercise.name}</span><button type="button" className="exercise-go" aria-label={`Log a set of ${exercise.name}`} onClick={() => { setSelected(String(exercise.id)); selectionVersion.current += 1; setLogMessage(''); setLogError(''); setScreen('log'); }}><Icon name="arrow-up-right" /></button></li>)}</ul>}</section>
       </>}
-      <div hidden={screen !== 'log'}><RestTimer /><p className="footer-note">Small steps. Stronger you.</p></div>
+      <div hidden={screen !== 'log'}><RestTimer /></div>
     </main>
-    <nav className="bottom-nav" aria-label="Main navigation">{[['log', 'lift', 'Log a Set'], ['exercises', 'list', 'Exercises'], ['history', 'history', 'History']].map(([key, icon, label]) => <button type="button" key={key} className={screen === key ? 'nav-item active' : 'nav-item'} aria-current={screen === key ? 'page' : undefined} onClick={() => setScreen(key)}><span className="nav-icon"><Icon name={icon} /></span><span>{label}</span></button>)}</nav>
+    <nav className="bottom-nav" aria-label="Main navigation">{[['log', 'lift', 'Log a Set'], ['exercises', 'list', 'Exercises'], ['history', 'history', 'History'], ['photos', 'photos', 'Pump Progress']].map(([key, icon, label]) => <button type="button" key={key} className={screen === key ? 'nav-item active' : 'nav-item'} aria-current={screen === key ? 'page' : undefined} onClick={() => setScreen(key)}><span className="nav-icon"><Icon name={icon} /></span><span>{label}</span></button>)}</nav>
   </div>;
 }
 
