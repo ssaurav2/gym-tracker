@@ -7,7 +7,8 @@ Their local files, folder, source modules, and existing SQLite table remain inta
 ## 1. Architecture and hosting — approved design, not deployed
 
 Use option B: React → FastAPI → Supabase Postgres. React also uses Supabase Auth
-for signup, login, logout, and password reset. Supabase manages passwords.
+for login and logout. Friends are created manually in the Supabase dashboard,
+public signup is disabled, and password reset is deferred. Supabase manages passwords.
 
 ### Hosting: Vercel for both frontend and backend
 
@@ -73,7 +74,8 @@ The pooler holds one database connection for that transaction, then releases it.
   a running function process reused for requests. Borrow exclusively per request,
   commit/roll back, then return the connection; never share one active transaction
   between concurrent requests. Reconnect after stale connections. Do not open an
-  eager database connection during module import/build. Installation needs approval.
+  eager database connection during module import/build. Psycopg/psycopg-pool
+  installation is pre-approved for Stage 2.
 - The shared transaction pooler does not support prepared statements, a feature
   that stores reusable query plans on a database session. With Psycopg, disable
   automatic preparation using `prepare_threshold=None`. This does NOT disable
@@ -162,11 +164,12 @@ The cloud version will have these app tables, alongside Supabase's managed accou
 
 | Table | Proposed columns | Important rules |
 | --- | --- | --- |
-| exercises | id (generated whole-number ID), user_id (Supabase account ID), name | Required owner and nonblank trimmed name; case-insensitive name uniqueness within one account. Different accounts may use the same name. |
-| sets | id (generated whole-number ID), user_id (Supabase account ID), exercise_id, weight, reps, date | Required owner/exercise/date; finite positive weight; positive whole-number reps. |
+| exercises | id (generated whole-number ID), user_id (Supabase account ID), name | Required owner and trimmed 1–120 character name; case-insensitive name uniqueness within one account. Different accounts may use the same name. |
+| sets | id (generated whole-number ID), user_id (Supabase account ID), exercise_id, weight, reps, date | Required owner/exercise/date; finite weight >0 and ≤10,000; whole-number reps 1–1,000. |
 
-Both user_id columns reference Supabase's managed account records. Existing numeric
-IDs can be preserved for the one-time import; reset generated ID counters afterward
+Both user_id columns reference Supabase's managed account records. Account deletion cascades to its exercises and sets; exercise deletion also cascades
+to its sets. No exercise-delete API is introduced. Existing numeric IDs can be
+preserved for the one-time import; reset generated ID counters afterward
 so future inserts do not collide. Rehearse this in an empty test database.
 
 Add a database relationship checking BOTH user_id and exercise_id against the
@@ -184,9 +187,10 @@ RLS behavior for each table:
 
 Index exercises by owner and sets by owner/exercise/newest ID for efficient queries.
 Keep last-set and History ordering newest-inserted-first by ID; no warm-up filtering
-or workout sessions. Keep original dates during import. Decide the timezone rule
-for newly logged sets before backend implementation; a server's timezone should
-not silently decide what day it is for users around the world.
+or workout sessions. Keep original dates during import. For new sets the browser sends its local
+YYYY-MM-DD date; the server rejects dates more than one day from current UTC.
+Enforce this at the API boundary rather than a moving database CHECK so historical
+records can still be imported.
 
 The import must explicitly assign the existing exercises and sets to the user's
 chosen Supabase account, preserve their links, and check counts and values afterward.
@@ -227,3 +231,44 @@ connection changes, cloud setup, or deployment has occurred in this step.
 
 No cloud setup, account implementation, SQL migration, data import, package
 installation, or deployment is authorized by this document alone.
+
+
+## Staged implementation and gates (latest user instructions)
+
+Work only on `multi-user`. After each stage run all tests and the frontend build,
+commit only that stage with a clear message, and report at most eight summary
+lines. Never continue through a gate without the user's explicit response.
+Pre-approved installs: psycopg, psycopg-pool, a JWT verification library, and
+@supabase/supabase-js. Ask before other installs, schema changes beyond the initial
+SQL file, or deletions. Flag all changes to existing Python/SQL logic. Do not touch
+saved photo files. Keep secrets out of Git and chat; examples contain placeholders.
+
+| Stage | Work | Current status / gate |
+| --- | --- | --- |
+| 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | Files written and statically reviewed; SQL NOT executed. Waiting at Gate 1. |
+| 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | Not started. Gate 2: user fills ignored .env and approves dev network tests. |
+| 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | Not started. Gate 3: user tests both accounts locally. |
+| 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Not started. Gate 4: user runs dry-run. |
+| 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Not started. Gate 5: user deploys; agent never deploys. |
+
+Stage 1 review found/fixed SQL gaps: account and exercise cascade deletion; name
+length 1–120, weight >0 to 10,000, reps 1–1,000; postgres membership for explicitly
+simulating the restricted role. The existing SQL keeps BEGIN/COMMIT, per-owner
+case-insensitive uniqueness, same-owner links, eight RLS policies, and no lifting
+grants to anon/authenticated. Python and the live schema are unchanged.
+
+Manual tests: `supabase/tests/202611080002_two_user_isolation.sql`. They use two
+existing dashboard-created dev accounts and roll back fixture records. They do
+not delete accounts or touch prior records, but generated ID counters may advance.
+
+Detailed Gate 1 clicks and expected results: [GATE_1_SETUP.md](GATE_1_SETUP.md).
+Token choice for Stage 2: PyJWT + project JWKS for asymmetric signing keys, checking
+signature/issuer/audience/expiry/algorithm/role/subject. For legacy HS256, use the
+Supabase Auth-server verification route, not a shared secret. References and
+manual signup-disabled account setup are in the Gate 1 guide.
+
+Stage 1 local validation: `python -m unittest discover -v` passed all 9 tests;
+`npm run build` in frontend passed; `git diff --check` passed. The migration and
+manual SQL isolation tests have only been reviewed as text, never executed.
+Gate 1 is waiting for the user's explicit confirmation; no later-stage code has
+been written and no packages were installed in Stage 1.

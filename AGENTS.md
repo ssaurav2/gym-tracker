@@ -125,3 +125,18 @@ Preparation status: see MULTI_USER_PLAN.md for the option B hosting proposal,
 verified local database backup, and approved database design. The SQL file in
 supabase/migrations/ is written but has not been executed. No cloud resources
 or live schema changes have been made.
+
+
+## Staged multi-user work (latest instructions)
+
+Use only the multi-user branch. Stages and mandatory gates are recorded in
+MULTI_USER_PLAN.md. Stage 1 SQL must be run by the user, not the agent. Stop at
+Gate 1 until the user confirms both files ran OK. After every stage, run all tests
+and the frontend build, commit that stage, and summarize in at most eight lines.
+The approved installs are psycopg, psycopg-pool, a JWT verification library, and
+@supabase/supabase-js; other installs require approval. Do not expose secrets.
+Login only: manual dashboard-created accounts, signup disabled, reset deferred.
+Dates: browser-local YYYY-MM-DD on insert, accepted only within one day of UTC.
+Caps: exercise name 1–120 characters, weight >0 to 10,000, reps 1–1,000.
+Account deletion cascades through exercises/sets. Initial SQL edits are authorized;
+additional schema changes/deletions need approval. Saved photo files stay untouched.
