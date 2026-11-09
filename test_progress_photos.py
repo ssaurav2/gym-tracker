@@ -13,7 +13,6 @@ from urllib.parse import urlsplit
 from PIL import Image
 from fastapi import FastAPI
 
-import api
 import progress_photos
 from migrate_progress_photos import migrate
 
@@ -22,17 +21,23 @@ class PhotoApiTest(unittest.TestCase):
     def setUp(self):
         self.photo_app = FastAPI()
         self.photo_app.add_middleware(progress_photos.PhotoPrivacyMiddleware)
-        self.photo_app.include_router(progress_photos.create_router(api.get_db))
+        self.photo_app.include_router(progress_photos.create_router(self.get_photo_db))
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
-        self.database_patch = patch.object(api, 'DB_PATH', Path(self.folder.name) / 'test.db')
-        self.database_patch.start()
-        self.addCleanup(self.database_patch.stop)
+        self.database_path = Path(self.folder.name) / 'test.db'
         self.directory_patch = patch.object(progress_photos, 'PHOTO_DIR', Path(self.folder.name) / 'photos')
         self.directory_patch.start()
         self.addCleanup(self.directory_patch.stop)
-        with closing(sqlite3.connect(api.DB_PATH)) as db:
+        with closing(sqlite3.connect(self.database_path)) as db:
             migrate(db)
+
+    def get_photo_db(self):
+        connection = sqlite3.connect(self.database_path)
+        connection.row_factory = sqlite3.Row
+        try:
+            yield connection
+        finally:
+            connection.close()
 
     def request(self, method, path='/progress-photos', body=b'', content_type='application/json', client='127.0.0.1', host='localhost', extra_headers=()):
         target = urlsplit(path)
@@ -102,7 +107,7 @@ class PhotoApiTest(unittest.TestCase):
         self.assertEqual([item['id'] for item in self.request('GET', '/progress-photos?sort=oldest')[1]], [first['id'], second['id']])
         self.assertEqual(self.request('GET', '/progress-photos?sort=bad')[0], 422)
         # Ties remain deterministic in both directions.
-        with closing(sqlite3.connect(api.DB_PATH)) as db:
+        with closing(sqlite3.connect(self.database_path)) as db:
             db.execute('UPDATE progress_photos SET uploaded_at = ?', (first['uploaded_at'],))
             db.commit()
         self.assertEqual(self.request('GET')[1][0]['id'], second['id'])
@@ -178,7 +183,7 @@ class PhotoApiTest(unittest.TestCase):
         self.assertEqual(self.request('DELETE', f"/progress-photos/{photo['id']}")[0], 204)
 
     def test_migration_is_repeatable_and_preserves_sets(self):
-        with closing(sqlite3.connect(api.DB_PATH)) as db:
+        with closing(sqlite3.connect(self.database_path)) as db:
             db.execute('CREATE TABLE sets (id INTEGER PRIMARY KEY, weight REAL)')
             db.execute('INSERT INTO sets (weight) VALUES (?)', (155,))
             db.commit()

@@ -19,7 +19,8 @@ add weight or reps.
 - Rest timer runs in the browser.
 
 ## Tech
-- Python + SQLite (gym_tracker.db). Plain sqlite3, no ORM.
+- Active multi-user HTTP API: Python/FastAPI + Supabase Postgres via psycopg, no ORM.
+- SQLite gym_tracker.db and app.py remain the preserved legacy terminal app/import source.
 - Tables: exercises (id, name), sets (id, exercise_id, weight, reps, date), and progress_photos (id, file_path, uploaded_at, category).
 - Files: database_setup.py (run once), app.py (terminal menu + functions).
 - React frontend in frontend/, talking to api.py through the existing development forwarding setup.
@@ -54,9 +55,10 @@ SQLite table are preserved. Do not re-enable or migrate them in this pass.
 The main-page subheading rotates through five user-provided quotes every 15 seconds.
 ## Long-term goal
 Eventually usable by other people (multiple users with accounts).
-On the multi-user branch, accounts and user_id ownership are planned but not
-implemented yet. The schema is approved; a commented SQL migration has been
-written for the user to review and execute manually. Do not run it automatically.
+On the multi-user branch, the user confirmed the dev schema and SQL isolation
+test passed (Gate 1). Stage 2 backend identity and Postgres code are implemented;
+Gate 2 is pending credentials/role-login approval and dev network tests. Stage 3
+frontend login is not implemented yet. Do not run schema files automatically.
 Keep the existing UI and avoid single-user assumptions in the API design.
 
 ## Pump Progress Gallery (deferred on multi-user branch)
@@ -122,9 +124,8 @@ Add a private "Pump Progress" section where the user can upload physique progres
   from the deployed app, but don't delete any photo files.
 
 Preparation status: see MULTI_USER_PLAN.md for the option B hosting proposal,
-verified local database backup, and approved database design. The SQL file in
-supabase/migrations/ is written but has not been executed. No cloud resources
-or live schema changes have been made.
+verified local database backup, and approved database design. The user manually applied the SQL in the dev project and confirmed the isolation
+test passed. The agent has not executed cloud SQL or deployed anything.
 
 
 ## Staged multi-user work (latest instructions)
@@ -140,3 +141,7 @@ Dates: browser-local YYYY-MM-DD on insert, accepted only within one day of UTC.
 Caps: exercise name 1–120 characters, weight >0 to 10,000, reps 1–1,000.
 Account deletion cascades through exercises/sets. Initial SQL edits are authorized;
 additional schema changes/deletions need approval. Saved photo files stay untouched.
+
+Current gate: Gate 1 passed; stop at Gate 2. See GATE_2_SETUP.md. Do not contact
+the dev project, change the restricted role login, or start Stage 3 without the
+user's next approval. Offline tests must keep INCLINE_RUN_DEV_TESTS disabled.

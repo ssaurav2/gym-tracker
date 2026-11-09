@@ -7,42 +7,32 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
-The API uses `gym_tracker.db` beside `api.py`. Only for a fresh database,
-run `.venv/bin/python database_setup.py` once. Do not rerun setup on an
-existing database. Exercise and set routes use these tables unchanged.
+On the `multi-user` branch the HTTP API uses Supabase Postgres, not SQLite.
+Stage 2 is implemented; Gate 2 is waiting for local settings and permission to run
+the dev integration checks. See [GATE_2_SETUP.md](GATE_2_SETUP.md). Do not deploy yet.
+The existing SQLite database and terminal `app.py` are preserved and not migrated.
+Do not rerun `database_setup.py` or execute cloud migrations automatically.
 
-Start from the project directory:
+Once configured, start the API from the project directory with:
 
 ```sh
-.venv/bin/python -m uvicorn api:app --reload
+.venv/bin/python run_local.py
 ```
 
-Open http://127.0.0.1:8000/docs. Expand an endpoint, click **Try it out**,
-enter the JSON body, and click **Execute**. These operations use your real
-database.
+This loads an ignored `.env` without printing values. Supabase login tokens are
+required for all lifting routes. `POST /sets` also requires a YYYY-MM-DD local date
+within one day of current UTC. The existing frontend will gain token/date handling
+in Stage 3; until then it cannot use this API normally. Password signup/reset are
+not being built: accounts are created manually in the Supabase dashboard.
 
-1. `POST /exercises` with `{"name":"Bench Press"}` returns 201 and an ID.
-   Repeating with `bench press` returns 409. Blank names return 422.
-2. `GET /exercises` lists exercise IDs. `GET /exercises/{exercise_id}/last-set`
-   returns `null` until you log a set.
-3. `POST /sets` with `{"exercise_id":1,"weight":155,"reps":8}` (substitute
-   your exercise ID) returns 201 with today's local date.
-4. Check the last-set endpoint again. It returns the latest inserted set,
-   ordered by ID, with no filtering. `GET /sets` lists newest first; its
-   optional `exercise_id` query parameter filters by exercise.
-5. `PUT /sets/{set_id}` with `{"weight":160,"reps":8}` fixes a set while
-   preserving its date and exercise. Weight or reps of zero or below return
-   422 on both creation and editing. Reps must be a whole number.
-6. `DELETE /sets/{set_id}` deletes a mistake and returns 204. Missing exercise
-   or set IDs return 404.
+Run all offline checks (no Supabase connection) with:
 
-Run isolated API checks with `.venv/bin/python -m unittest -v test_api`.
-Tests use a temporary database, leaving saved data untouched.
+```sh
+INCLINE_RUN_DEV_TESTS=0 .venv/bin/python -m unittest discover -v
+```
 
-`app.py` remains the existing terminal interface. `api.py` provides resource
-routes used by the React frontend. There is no authentication or user ID yet;
-account scoping is deferred. Duplicate-name checks apply to API writes;
-the existing terminal interface does not perform them.
+The real dev-project tests are explicitly opt-in and remain behind Gate 2.
+The Vercel backend entrypoint is `api:app`, configured in `pyproject.toml`.
 
 ## React frontend
 
@@ -72,7 +62,9 @@ paths to Python before they can be deployed; this setup is for local development
 
 See [MULTI_USER_PLAN.md](MULTI_USER_PLAN.md) for the proposed FastAPI + Supabase
 architecture, the verified local SQLite backup, and the schema awaiting approval.
-The app still runs locally on SQLite; accounts and deployment are not implemented.
+The HTTP API now requires Supabase configuration and a verified account.
+Frontend login and deployment remain later stages; the legacy terminal app still
+uses SQLite. No SQLite data import has been performed.
 
 Pump Progress is deferred on this branch: its navigation entry and API routes are
 not exposed. Its source modules, local photo files/folder, and existing SQLite table
@@ -81,7 +73,7 @@ are preserved. Nothing from that feature will be imported or deployed in this pa
 Run all checks with:
 
 ```sh
-.venv/bin/python -m unittest -v test_api test_progress_photos
+INCLINE_RUN_DEV_TESTS=0 .venv/bin/python -m unittest discover -v
 ```
 
 `test_api` checks the active API, including that photo routes return 404.

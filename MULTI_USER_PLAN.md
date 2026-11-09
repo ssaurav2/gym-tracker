@@ -245,8 +245,8 @@ saved photo files. Keep secrets out of Git and chat; examples contain placeholde
 
 | Stage | Work | Current status / gate |
 | --- | --- | --- |
-| 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | Files written and statically reviewed; SQL NOT executed. Waiting at Gate 1. |
-| 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | Not started. Gate 2: user fills ignored .env and approves dev network tests. |
+| 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | User confirmed corrected migration/isolation test passed. Gate 1 passed. |
+| 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | Backend and offline tests implemented; dev tests prepared but not run. Waiting at Gate 2. |
 | 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | Not started. Gate 3: user tests both accounts locally. |
 | 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Not started. Gate 4: user runs dry-run. |
 | 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Not started. Gate 5: user deploys; agent never deploys. |
@@ -270,8 +270,8 @@ manual signup-disabled account setup are in the Gate 1 guide.
 Stage 1 local validation: `python -m unittest discover -v` passed all 9 tests;
 `npm run build` in frontend passed; `git diff --check` passed. The migration and
 manual SQL isolation tests have only been reviewed as text, never executed.
-Gate 1 is waiting for the user's explicit confirmation; no later-stage code has
-been written and no packages were installed in Stage 1.
+Stage 1 was committed, then the user explicitly confirmed the corrected SQL
+isolation test passed. Gate 1 is now open; no packages were installed in Stage 1.
 
 
 Stage 1 Gate 1 repair: hosted Supabase does not let postgres grant auth-schema
@@ -281,4 +281,48 @@ reads the verified UUID subject directly from transaction-local request.jwt.clai
 This changes existing SQL logic, not the owner-only security design; no new schema
 objects or role memberships are added. The matching manual repair for already
 created tables is in GATE_1_SETUP.md; Codex has not executed it. User reported
-schema_access=false/helper_access=true; Gate 1 is still pending, Stage 2 unstarted.
+schema_access=false/helper_access=true; the user later confirmed the repaired
+isolation test passed, opening Gate 1.
+
+
+## Stage 2 status — implementation ready, Gate 2 waiting
+
+Gate 1 passed by user confirmation. Stage 2 replaces existing api.py SQLite logic
+with account-scoped Postgres queries and bound %s parameters. Every lifting query
+also filters by the verified owner in code. Name uniqueness now uses Postgres's
+approved per-owner lower(name) index rather than Python casefold; dates are supplied
+by the browser and checked within ±1 UTC calendar day; caps match the SQL. Route
+paths and response fields remain the same. Responses are marked no-store.
+
+New modules: authentication.py (PyJWT + project JWKS; legacy HS256 Auth-server
+fallback), database.py (lazy encrypted one-slot pool, no prepared statements,
+restricted-role check, per-request transaction-local identity), settings.py,
+local_env.py, and run_local.py. pyproject.toml selects api:app and declares runtime
+dependencies. The approved psycopg/psycopg-pool/PyJWT packages and their normal
+binary/crypto dependencies were installed; no other direct package was installed.
+
+Offline tests validate both users' routes WITHOUT simulated RLS, real signed JWTs,
+malformed/expired/wrong-account claims, caps/dates, transaction identity cleanup,
+error sanitization, and lazy encrypted pool settings. Retained photo tests now
+provide their own disposable SQLite dependency instead of depending on api.DB_PATH.
+The active API never imports the photo module or accesses its files.
+
+Three real-project tests are prepared in test_supabase_dev.py and skipped unless
+INCLINE_RUN_DEV_TESTS=1 is explicitly set. They validate real token verification,
+HTTP account isolation, database RLS, same-owner links, and identity clearing across
+real transactions; their fixture writes roll back. They have NOT been run. No
+Supabase endpoint or dev database has been contacted by Stage 2 development.
+
+Gate 2 instructions: [GATE_2_SETUP.md](GATE_2_SETUP.md). The user fills the ignored
+.env using placeholder-only .env.example, confirms/approves securely enabling login
+and credentials for the existing NOLOGIN incline_api role, and approves dev network
+tests. The agent has not enabled that role or made schema changes. Stage 3 remains
+unstarted; the frontend needs its Stage 3 login/token/date changes before normal use
+with this API. Hosting/deployment and SQLite data import remain unstarted.
+
+Stage 2 local validation: all 30 offline tests passed; 3 dev-network tests were
+explicitly skipped behind Gate 2 (33 discovered total). The frontend production
+build, TOML entrypoint/dependency parsing, and git diff whitespace check passed.
+A commit-failure test also proves transactions finish before sending a success
+response; FastAPI's yielded database dependency uses function scope for that reason.
+No user .env was read, no dev API/database was contacted, and no cloud SQL ran.
