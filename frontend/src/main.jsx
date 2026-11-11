@@ -1,18 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { QUOTES } from './quotes';
-
-async function request(path, body, method = body === undefined ? 'GET' : 'POST') {
-  const response = await fetch(path, {
-    method, ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
-  });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(typeof data.detail === 'string' ? data.detail : 'Couldn’t save that. Check your entries and try again.');
-  }
-  return response.status === 204 ? null : response.json();
-}
+import { accountSession } from './supabaseClient';
+import { AccountChangedError, localDateString } from './accountSession';
 
 function Icon({ name }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -54,7 +45,7 @@ function RestTimer() {
   </section>;
 }
 
-function History({ exercises, onChange }) {
+function History({ exercises, onChange, request }) {
   const [filter, setFilter] = useState('');
   const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +64,7 @@ function History({ exercises, onChange }) {
       .catch(() => { if (active) setError('Couldn’t load history. Please retry.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [filter, reload]);
+  }, [filter, reload, request]);
 
   async function save(event, entry) {
     event.preventDefault();
@@ -119,8 +110,8 @@ function History({ exercises, onChange }) {
       return <li className="card history-card" key={entry.id}>
         <h3>{exerciseName}</h3>
         {editing === entry.id ? <form onSubmit={event => save(event, entry)}>
-          <div className="input-pair"><div><label htmlFor={`history-weight-${entry.id}`}>Weight</label><input id={`history-weight-${entry.id}`} type="number" inputMode="decimal" min="0.01" step="any" value={weight} onChange={event => setWeight(event.target.value)} required disabled={busy} autoFocus /></div>
-          <div><label htmlFor={`history-reps-${entry.id}`}>Reps</label><input id={`history-reps-${entry.id}`} type="number" inputMode="numeric" min="1" step="1" value={reps} onChange={event => setReps(event.target.value)} required disabled={busy} /></div></div>
+          <div className="input-pair"><div><label htmlFor={`history-weight-${entry.id}`}>Weight</label><input id={`history-weight-${entry.id}`} type="number" inputMode="decimal" min="0.01" max="10000" step="any" value={weight} onChange={event => setWeight(event.target.value)} required disabled={busy} autoFocus /></div>
+          <div><label htmlFor={`history-reps-${entry.id}`}>Reps</label><input id={`history-reps-${entry.id}`} type="number" inputMode="numeric" min="1" max="1000" step="1" value={reps} onChange={event => setReps(event.target.value)} required disabled={busy} /></div></div>
           <div className="history-actions"><button className="small-button" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button><button type="button" className="text-button" disabled={busy} onClick={() => setEditing(null)}>Cancel</button></div>
         </form> : <><p className="history-values">{entry.weight} <span>×</span> {entry.reps}<small>weight × reps</small></p>
           <div className="history-actions"><button type="button" className="small-button" disabled={busy} aria-label={`Edit ${exerciseName} set from ${entry.date}`} onClick={() => { setEditing(entry.id); setWeight(String(entry.weight)); setReps(String(entry.reps)); setError(''); setMessage(''); }}>Edit</button>
@@ -140,7 +131,7 @@ function RotatingQuote() {
   return <span className="rotating-quote">{QUOTES[index] || 'A little stronger, one set at a time.'}</span>;
 }
 
-function App() {
+function App({ request, email, onLogout }) {
   const [screen, setScreen] = useState('log');
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -177,7 +168,7 @@ function App() {
       .catch(() => { if (active) setLastError('Couldn’t load your last set.'); })
       .finally(() => { if (active) setLastLoading(false); });
     return () => { active = false; };
-  }, [selected, refresh]);
+  }, [selected, refresh, request]);
 
   async function logSet(event) {
     event.preventDefault();
@@ -185,7 +176,7 @@ function App() {
     setSaving(true); setLogError(''); setLogMessage('');
     const version = selectionVersion.current;
     try {
-      await request('/sets', { exercise_id: Number(selected), weight: Number(weight), reps: Number(reps) });
+      await request('/sets', { exercise_id: Number(selected), weight: Number(weight), reps: Number(reps), date: localDateString() });
       if (version === selectionVersion.current) { setLogMessage('Set logged. Nice work.'); setRefresh(value => value + 1); }
     } catch (error) { if (version === selectionVersion.current) setLogError(error.message); }
     finally { setSaving(false); }
@@ -202,8 +193,8 @@ function App() {
     finally { setAdding(false); }
   }
   return <div className="app-shell">
-    <header className="brand"><span className="brand-mark"><Icon name="lift" /></span><span className="brand-name">Incline</span><span className="brand-tag">Consistency moves mountains</span></header>
-    <div className="landscape-header" aria-hidden="true" />
+    <BrandHeader />
+    <div className="account-bar"><span className="account-email">{email}</span><button type="button" className="text-button" onClick={onLogout}>Log out</button></div>
     <main>
       <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>
       {loadError && <div className="error-banner" role="alert">{loadError}<button type="button" className="text-button" onClick={loadExercises}>Retry</button></div>}
@@ -216,12 +207,12 @@ function App() {
           </select>
           {!loading && !loadError && !exercises.length && <p className="empty-hint">Your first set starts with an exercise. <button type="button" className="inline-button" onClick={() => setScreen('exercises')}>Add one →</button></p>}
           <div className="last-set" aria-live="polite"><span className="eyebrow">LAST TIME</span>{lastLoading ? <p className="last-placeholder">Loading your last set…</p> : lastError ? <p className="last-placeholder">{lastError} <button type="button" className="inline-button" onClick={() => setRefresh(value => value + 1)}>Retry</button></p> : last ? <p className="last-value">{last.weight} <span>×</span> {last.reps}<small>weight × reps</small></p> : <p className="last-placeholder">{selected ? 'No sets yet. Set your starting point.' : 'Choose a lift to see your last set.'}</p>}</div>
-          <div className="input-pair"><div><label htmlFor="weight">Weight</label><input id="weight" type="number" inputMode="decimal" min="0.01" step="any" placeholder="0" value={weight} onChange={event => { setWeight(event.target.value); setLogMessage(''); }} required /></div><div><label htmlFor="reps">Reps</label><input id="reps" type="number" inputMode="numeric" min="1" step="1" placeholder="0" value={reps} onChange={event => { setReps(event.target.value); setLogMessage(''); }} required /></div></div>
+          <div className="input-pair"><div><label htmlFor="weight">Weight</label><input id="weight" type="number" inputMode="decimal" min="0.01" max="10000" step="any" placeholder="0" value={weight} onChange={event => { setWeight(event.target.value); setLogMessage(''); }} required /></div><div><label htmlFor="reps">Reps</label><input id="reps" type="number" inputMode="numeric" min="1" max="1000" step="1" placeholder="0" value={reps} onChange={event => { setReps(event.target.value); setLogMessage(''); }} required /></div></div>
           <p className="field-hint">Use your usual weight unit consistently.</p>
           {logError && <p className="error" role="alert">{logError}</p>}{logMessage && <p className="success" role="status">{logMessage}</p>}
           <button className="primary-button" disabled={saving || !selected || loading || !weight || !reps}>{saving ? 'Logging…' : 'Log Set'}<Icon name="arrow-up-right" /></button>
         </form>
-      </> : screen === 'history' ? <History exercises={exercises} onChange={() => setRefresh(value => value + 1)} /> : <>
+      </> : screen === 'history' ? <History exercises={exercises} request={request} onChange={() => setRefresh(value => value + 1)} /> : <>
         <form className="card" onSubmit={addExercise}><h2>Add an exercise</h2><label htmlFor="new-exercise">Exercise name</label><input id="new-exercise" placeholder="e.g. Bench Press" maxLength={120} value={name} onChange={event => { setName(event.target.value); setAddMessage(''); }} required />{addError && <p className="error" role="alert">{addError}</p>}{addMessage && <p className="success" role="status">{addMessage}</p>}<button className="primary-button add-button" disabled={adding || loading || Boolean(loadError) || !name.trim()}>{adding ? 'Adding…' : 'Add Exercise'}<span aria-hidden="true">+</span></button></form>
         <section className="exercise-section"><div className="section-heading"><h2>Your exercises</h2><span className="count">{exercises.length}</span></div>{loading ? <p className="muted" role="status">Loading exercises…</p> : !exercises.length ? <div className="card empty-list"><Icon name="lift" /><h3>Your list starts here.</h3><p className="muted">Add your first exercise above.</p></div> : <ul className="exercise-list">{exercises.map((exercise, index) => <li key={exercise.id}><span className="exercise-number">{String(index + 1).padStart(2, '0')}</span><span className="exercise-name">{exercise.name}</span><button type="button" className="exercise-go" aria-label={`Log a set of ${exercise.name}`} onClick={() => { setSelected(String(exercise.id)); selectionVersion.current += 1; setLogMessage(''); setLogError(''); setScreen('log'); }}><Icon name="arrow-up-right" /></button></li>)}</ul>}</section>
       </>}
@@ -231,4 +222,48 @@ function App() {
   </div>;
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+function BrandHeader() {
+  return <>
+    <header className="brand"><span className="brand-mark"><Icon name="lift" /></span><span className="brand-name">Incline</span><span className="brand-tag">Consistency moves mountains</span></header>
+    <div className="landscape-header" aria-hidden="true" />
+  </>;
+}
+
+function Login({ notice, signingOut = false }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function login(event) {
+    event.preventDefault();
+    if (busy || signingOut || !accountSession) return;
+    setBusy(true); setError('');
+    try { await accountSession.login(email, password); }
+    catch (error) { if (!(error instanceof AccountChangedError)) setError(error.message); }
+    finally { setPassword(''); setBusy(false); }
+  }
+  return <div className="app-shell auth-shell"><BrandHeader /><main>
+    <div className="page-heading"><p className="eyebrow">CONSISTENCY STARTS HERE</p><h1>Welcome<br /><strong>back.</strong></h1><p className="intro">Log in to your Incline account.</p></div>
+    {!accountSession ? <p className="error-banner" role="alert">Login is unavailable. Please try again later.</p> : <form className="card login-card" onSubmit={login}>
+      <h2>Log in</h2>
+      <label htmlFor="login-email">Email</label><input id="login-email" type="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} onChange={event => setEmail(event.target.value)} disabled={busy || signingOut} required />
+      <label htmlFor="login-password">Password</label><input id="login-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy || signingOut} required />
+      {signingOut ? <p className="muted" role="status">Logging out…</p> : notice && <p className="muted" role="status">{notice}</p>}{error && <p className="error" role="alert">{error}</p>}
+      <button className="primary-button" disabled={busy || signingOut || !email.trim() || !password}>{busy ? 'Logging in…' : 'Log in'}<Icon name="arrow-up-right" /></button>
+      <p className="field-hint login-hint">Use the account you were given.</p>
+    </form>}
+  </main></div>;
+}
+
+function AuthenticatedRoot() {
+  const account = useSyncExternalStore(accountSession.subscribe, accountSession.getSnapshot);
+  useEffect(() => accountSession.start(), []);
+  const userId = account.session?.user.id;
+  const request = useMemo(() => accountSession.createRequest(account.epoch, userId), [account.epoch, userId]);
+  if (!account.ready) return <div className="app-shell auth-shell"><BrandHeader /><main><p className="muted" role="status">Checking your login…</p></main></div>;
+  if (!account.session) return <Login notice={account.notice} signingOut={account.signingOut} />;
+  // A changed key unmounts ALL account state, including History, drafts and timer.
+  return <App key={`${account.epoch}:${userId}`} request={request} email={account.session.user.email || 'Signed in'} onLogout={() => accountSession.signOut()} />;
+}
+
+createRoot(document.getElementById('root')).render(accountSession ? <AuthenticatedRoot /> : <Login />);

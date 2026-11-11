@@ -246,8 +246,8 @@ saved photo files. Keep secrets out of Git and chat; examples contain placeholde
 | Stage | Work | Current status / gate |
 | --- | --- | --- |
 | 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | User confirmed corrected migration/isolation test passed. Gate 1 passed. |
-| 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | Backend and offline tests implemented; dev tests prepared but not run. Waiting at Gate 2. |
-| 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | Not started. Gate 3: user tests both accounts locally. |
+| 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | User reported Gate 2 tests passed. Gate 2 passed. |
+| 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | Frontend login, authorized requests, local date, and account clearing implemented. Waiting at Gate 3. |
 | 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Not started. Gate 4: user runs dry-run. |
 | 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Not started. Gate 5: user deploys; agent never deploys. |
 
@@ -285,7 +285,7 @@ schema_access=false/helper_access=true; the user later confirmed the repaired
 isolation test passed, opening Gate 1.
 
 
-## Stage 2 status — implementation ready, Gate 2 waiting
+## Stage 2 status — Gate 2 passed by user confirmation
 
 Gate 1 passed by user confirmation. Stage 2 replaces existing api.py SQLite logic
 with account-scoped Postgres queries and bound %s parameters. Every lifting query
@@ -310,15 +310,15 @@ The active API never imports the photo module or accesses its files.
 Three real-project tests are prepared in test_supabase_dev.py and skipped unless
 INCLINE_RUN_DEV_TESTS=1 is explicitly set. They validate real token verification,
 HTTP account isolation, database RLS, same-owner links, and identity clearing across
-real transactions; their fixture writes roll back. They have NOT been run. No
-Supabase endpoint or dev database has been contacted by Stage 2 development.
+real transactions; their fixture writes roll back. The agent did not run them; the user subsequently reported they passed, opening
+Gate 2. No Supabase endpoint or dev database was contacted by the agent during
+Stage 2 development.
 
 Gate 2 instructions: [GATE_2_SETUP.md](GATE_2_SETUP.md). The user fills the ignored
 .env using placeholder-only .env.example, confirms/approves securely enabling login
 and credentials for the existing NOLOGIN incline_api role, and approves dev network
-tests. The agent has not enabled that role or made schema changes. Stage 3 remains
-unstarted; the frontend needs its Stage 3 login/token/date changes before normal use
-with this API. Hosting/deployment and SQLite data import remain unstarted.
+tests. The agent has not enabled that role or made schema changes. The user confirmed
+Gate 2 completion; Stage 3 is now implemented as recorded below. Hosting/deployment and SQLite data import remain unstarted.
 
 Stage 2 local validation: all 30 offline tests passed; 3 dev-network tests were
 explicitly skipped behind Gate 2 (33 discovered total). The frontend production
@@ -326,3 +326,43 @@ build, TOML entrypoint/dependency parsing, and git diff whitespace check passed.
 A commit-failure test also proves transactions finish before sending a success
 response; FastAPI's yielded database dependency uses function scope for that reason.
 No user .env was read, no dev API/database was contacted, and no cloud SQL ran.
+
+
+## Stage 3 status — implemented, Gate 3 manual checks pending
+
+The user reported that Gate 2 tests passed and authorized Stage 3. That confirmation
+opens Gate 2; no additional live-project tests were run by the agent in Stage 3.
+
+Added the pre-approved @supabase/supabase-js dependency. Login is email/password
+only for dashboard-created accounts; no signup/reset/provider integration. Only
+VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY enter the frontend. Build-time
+and runtime config validation reject privileged/legacy keys without echoing them.
+The backend .env stays separate from ignored frontend/.env.local.
+
+accountSession.js coordinates auth state, local-scope logout, and API calls. It
+gets the current SDK session before attaching the bearer token, rejects a changed
+account before sending, aborts pending work on account boundaries, and rejects late
+responses even if cancellation is ignored. A changed account generation/user key
+unmounts the entire React app, clearing exercises, History, last entries, drafts,
+messages, filters, and timer. Same-account token refresh does not reset that key.
+A 401 clears state and saved local login; logout clears visible data immediately,
+even when server logout fails. Passwords and SDK exception details are not logged.
+
+main.jsx adds the cream/dark login screen, account email/logout control, and date
+submission using browser-local calendar fields. Existing logging/History requests
+now use the authorized request helper. Form max values match backend caps. Route
+paths and database schema are unchanged. No existing Python/SQL logic changed in
+Stage 3; saved photo files and deferred modules remain untouched.
+
+Node's built-in offline tests cover sign-in, headers for all API methods, local
+dates, same-account refresh, account switches, late bootstrap/replies, failed SDK
+session reads, 401/logout, public-only config, and external URL rejection. The
+manual browser checklist is [GATE_3_CHECKLIST.md](GATE_3_CHECKLIST.md).
+
+STOP at Gate 3 until the user confirms the two-account local UI checks. Stage 4
+import work and Stage 5 deployment remain unstarted.
+
+Stage 3 validation: all 35 offline Python tests and 19 frontend tests passed;
+3 live dev checks were intentionally skipped. The frontend production build and
+git diff --check passed. Frontend tests use fake SDK/fetch objects only. No actual
+account login or live Supabase connection was performed by the agent.

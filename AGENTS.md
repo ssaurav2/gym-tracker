@@ -57,8 +57,9 @@ The main-page subheading rotates through five user-provided quotes every 15 seco
 Eventually usable by other people (multiple users with accounts).
 On the multi-user branch, the user confirmed the dev schema and SQL isolation
 test passed (Gate 1). Stage 2 backend identity and Postgres code are implemented;
-Gate 2 is pending credentials/role-login approval and dev network tests. Stage 3
-frontend login is not implemented yet. Do not run schema files automatically.
+The user confirmed Gate 2 tests passed. Stage 3 frontend login, bearer tokens,
+local dates, and account-state clearing are implemented; Gate 3 manual UI testing
+is pending. Do not run schema files automatically.
 Keep the existing UI and avoid single-user assumptions in the API design.
 
 ## Pump Progress Gallery (deferred on multi-user branch)
@@ -142,6 +143,7 @@ Caps: exercise name 1–120 characters, weight >0 to 10,000, reps 1–1,000.
 Account deletion cascades through exercises/sets. Initial SQL edits are authorized;
 additional schema changes/deletions need approval. Saved photo files stay untouched.
 
-Current gate: Gate 1 passed; stop at Gate 2. See GATE_2_SETUP.md. Do not contact
-the dev project, change the restricted role login, or start Stage 3 without the
-user's next approval. Offline tests must keep INCLINE_RUN_DEV_TESTS disabled.
+Current gate: Gates 1 and 2 passed by user confirmation; stop at Gate 3. See
+GATE_3_CHECKLIST.md. Do not start the Stage 4 import or Stage 5 deployment until
+the user confirms the next gate. Offline tests must keep INCLINE_RUN_DEV_TESTS
+disabled; do not print credentials or inspect saved tokens.

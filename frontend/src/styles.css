@@ -272,3 +272,12 @@ input::-webkit-inner-spin-button { appearance: none; }
   .chip { padding: 0 12px; }
   .photo-title { font-size: 25px; }
 }
+
+.account-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); margin: 0 0 8px; }
+.account-email { color: var(--muted); font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-bar .text-button { flex-shrink: 0; }
+.auth-shell main { padding-bottom: calc(40px + var(--safe-bottom)); }
+.login-card > h2 { margin-bottom: 24px; }
+.login-card input { margin-bottom: 22px; font-size: 16px; }
+.login-card .primary-button { margin-top: 4px; }
+.login-card .login-hint { margin: 18px 0 0; }
