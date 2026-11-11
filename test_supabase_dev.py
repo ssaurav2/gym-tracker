@@ -13,7 +13,9 @@ from urllib.request import Request, urlopen
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
+from psycopg import Error as DatabaseError
 from psycopg.errors import ForeignKeyViolation, InsufficientPrivilege
+from psycopg_pool import PoolTimeout
 
 import api
 import database
@@ -35,11 +37,13 @@ class SingleConnectionPool:
 class DevProjectTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        load_local_env()
-        config = auth_settings()
-        cls.users = []
+        stage = 'user A authentication'
         try:
+            load_local_env()
+            config = auth_settings()
+            cls.users = []
             for letter in ('A', 'B'):
+                stage = f'user {letter} authentication'
                 payload = {'email': os.environ[f'TEST_USER_{letter}_EMAIL'],
                            'password': os.environ[f'TEST_USER_{letter}_PASSWORD']}
                 login = Request(config.issuer + '/token?grant_type=password',
@@ -50,11 +54,24 @@ class DevProjectTest(unittest.TestCase):
                 cls.users.append((UUID(result['user']['id']), result['access_token']))
             if cls.users[0][0] == cls.users[1][0]:
                 raise ValueError('Two distinct accounts required')
+            stage = 'database configuration'
             cls.pool = database.get_pool()
         except Exception as error:
+            if stage == 'database configuration':
+                # Inspect code locations/types only, never exception messages or
+                # frame locals. Do not open a connection just for diagnostics.
+                trace = error.__traceback__
+                while trace is not None:
+                    if trace.tb_frame.f_code is database.check_runtime_role.__code__:
+                        stage = 'restricted role validation'
+                        break
+                    trace = trace.tb_next
+                else:
+                    if isinstance(error, (DatabaseError, PoolTimeout)):
+                        stage = 'database connection'
             if isinstance(error, HTTPError):
                 error.close()
-            raise RuntimeError('Dev setup failed. Check your local settings, confirmed accounts, and restricted role; no credentials are printed.') from None
+            raise RuntimeError(f'Dev setup failed: {stage}') from None
         cls.addClassCleanup(database.close_pool)
 
     def call(self, method, path, body=None, user=0):
