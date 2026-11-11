@@ -6,19 +6,19 @@
   "rewrites": [
     {
       "source": "/exercises",
-      "destination": "https://incline-api.example.invalid/exercises"
+      "destination": "https://incline-api.https://incline-api-dev.vercel.app/exercises"
     },
     {
       "source": "/exercises/:path*",
-      "destination": "https://incline-api.example.invalid/exercises/:path*"
+      "destination": "https://incline-api.https://incline-api-dev.vercel.app/exercises/:path*"
     },
     {
       "source": "/sets",
-      "destination": "https://incline-api.example.invalid/sets"
+      "destination": "https://incline-api.https://incline-api-dev.vercel.app/sets"
     },
     {
       "source": "/sets/:path*",
-      "destination": "https://incline-api.example.invalid/sets/:path*"
+      "destination": "https://incline-api.https://incline-api-dev.vercel.app/sets/:path*"
     },
     {
       "source": "/((?!assets/).*)",
