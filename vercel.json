@@ -4,7 +4,7 @@
   "functions": {
     "api.py": {
       "maxDuration": 30,
-      "excludeFiles": "{**/*.db,**/*.db-*,**/*.sqlite,**/*.sqlite3,**/*.sqlite-*,**/*.sqlite3-*,backups/**,private/**,**/.env,**/.env.*,.venv/**,**/__pycache__/**,frontend/**,design/**,supabase/**,test_*.py,import_sqlite.py,app.py,database_setup.py,progress_photos.py,migrate_progress_photos.py,run_local.py,requirements.txt,.DS_Store}"
+      "excludeFiles": "{**/*.db*,**/*.sqlite*,backups/**,private/**,**/.env*,.venv/**,frontend/**,design/**,supabase/**,test_*.py,import_sqlite.py,app.py,run_local.py}"
     }
   },
   "headers": [
