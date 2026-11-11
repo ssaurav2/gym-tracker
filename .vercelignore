@@ -1,0 +1,29 @@
+# Deployment exclusions only: these do not remove local files.
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-*
+**/*.sqlite3-*
+**/.env
+**/.env.*
+backups/
+private/
+.venv/
+**/__pycache__/
+**/node_modules/
+**/.DS_Store
+.git/
+.vercel/
+# Backend uses pyproject.toml runtime dependencies, not legacy photo packages.
+requirements.txt
+frontend/
+design/
+supabase/
+test_*.py
+import_sqlite.py
+app.py
+database_setup.py
+progress_photos.py
+migrate_progress_photos.py
+run_local.py

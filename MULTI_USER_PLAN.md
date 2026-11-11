@@ -19,8 +19,8 @@ Neither project has been created.
 - Frontend project: root `frontend`, Vite build `npm run build`, output `dist`.
 - Backend project: repository root, FastAPI framework, Python function loading
   `api:app`. Its deployment must not publish the SQLite database, local backups,
-  private folders, or environment files as assets or function bundle data. Add
-  explicit deployment exclusions later; Git ignore rules alone are not the plan.
+  private folders, or environment files as assets or function bundle data. Explicit
+  deployment exclusions are now prepared in Stage 5; Git ignore rules alone are not the plan.
 - Frontend routing will forward `/exercises`, `/sets`, and their subpaths to the
   backend project, keeping existing browser API paths and query strings. A rewrite
   means forwarding a request on the server without changing the browser address.
@@ -43,7 +43,7 @@ This arrangement uses Vercel's documented FastAPI entrypoint and rewrite support
 
 The existing top-level `app = FastAPI(...)` and route functions are the correct
 shape. Keep the file and explicitly configure `tool.vercel.entrypoint` as `api:app`
-in a future root `pyproject.toml`. An entrypoint tells Vercel which Python object
+in the existing root `pyproject.toml`. An entrypoint tells Vercel which Python object
 handles requests. This is important because this repository also has a terminal
 `app.py`; automatic filename detection must not select it.
 
@@ -55,8 +55,8 @@ a function's local disk is not the production database. Keep the existing routes
 validation, and most-recent-entry behavior. Vercel does not require splitting each
 route into a separate function or moving this app into an `/api` directory.
 
-These deployment changes remain planned; the SQL-file step does not change
-Python application code, deployment configuration, or dependencies.
+The entrypoint and Postgres adaptation are implemented in Stage 2. Stage 5
+configuration is prepared below; no deployment has been performed.
 [Python entrypoints](https://vercel.com/docs/functions/runtimes/python).
 
 ### Supabase connections and account isolation
@@ -157,7 +157,7 @@ source opened read-only. The source database was not changed.
   more sets have been logged since this snapshot.
 - Do not upload the database or import data until the migration script is reviewed.
 
-## 3. Approved database structure — SQL written, not applied
+## 3. Approved database structure — user applied to dev; agent never runs it
 
 A schema is the structure of the database: its tables, columns, and rules.
 The cloud version will have these app tables, alongside Supabase's managed accounts.
@@ -211,7 +211,7 @@ The SQLite import is separate; Stage 4 below records its preparation. It has not
 SQLite schema and saved data remain unchanged. No package installation, backend
 connection changes, cloud setup, or deployment has occurred in this step.
 
-## Later steps — not started
+## Original roadmap — see current staged status below
 
 4. Configure Supabase Auth, approved schema, restricted database role, and RLS.
 5. Adapt FastAPI to verify accounts and use parameterized Postgres queries through
@@ -248,8 +248,8 @@ saved photo files. Keep secrets out of Git and chat; examples contain placeholde
 | 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | User confirmed corrected migration/isolation test passed. Gate 1 passed. |
 | 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | User reported Gate 2 tests passed. Gate 2 passed. |
 | 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | User confirmed two-account manual checks and automated checks passed. Gate 3 passed. |
-| 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Importer, offline tests and guide prepared. Gate 4: waiting for user dry-run. |
-| 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Not started. Gate 5: user deploys; agent never deploys. |
+| 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | User confirmed local dry-run passed: 2 exercises, 8 sets. Gate 4 passed; actual import not run. |
+| 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Configuration and checklist prepared. Waiting at Gate 5; user deploys, agent never deploys. |
 
 Stage 1 review found/fixed SQL gaps: account and exercise cascade deletion; name
 length 1–120, weight >0 to 10,000, reps 1–1,000; postgres membership for explicitly
@@ -360,7 +360,7 @@ session reads, 401/logout, public-only config, and external URL rejection. The
 manual browser checklist is [GATE_3_CHECKLIST.md](GATE_3_CHECKLIST.md).
 
 The user confirmed all Gate 3 two-account checks passed and approved Stage 4
-preparation. Stage 5 deployment remains unstarted.
+preparation. Stage 5 configuration is now recorded below; deployment remains unstarted.
 
 Stage 3 validation: all 35 offline Python tests and 19 frontend tests passed;
 3 live dev checks were intentionally skipped. The frontend production build and
@@ -368,7 +368,7 @@ git diff --check passed. Frontend tests use fake SDK/fetch objects only. No actu
 account login or live Supabase connection was performed by the agent.
 
 
-## Stage 4 status — prepared, waiting at Gate 4
+## Stage 4 status — Gate 4 dry-run passed
 
 Gate 3 passed by user confirmation. import_sqlite.py reads only a detached backup,
 validates without repairing, and defaults to local-only dry-run. IMPORT_USER_ID
@@ -386,10 +386,45 @@ performed. The actual import has NOT run, including against the existing backup.
 Offline fixtures test validation, read-only source handling, owner mapping,
 repeatability/conflicts, rollback, counter alignment, and sanitized failures.
 Guide and required placeholder variables: GATE_4_IMPORT_GUIDE.md and .env.example.
-STOP at Gate 4: user runs the local-only dry-run and reports its result. Do not
-run an actual import or begin Stage 5 until the user approves the next work.
+The user confirmed the local-only dry-run passed with 2 exercises and 8 sets,
+then explicitly approved Stage 5 preparation. Actual import remains unrun and
+requires separate approval; passing Gate 4 did not authorize uploading rows.
 
 Stage 4 validation: 46 offline Python tests passed; 3 live-project tests were
 explicitly skipped. All 19 frontend tests and the production build passed.
 Offline importer tests used disposable fixtures only, never the real backup or
 Supabase. git diff --check passed.
+
+
+## Stage 5 status — configuration prepared, STOP at Gate 5
+
+Root vercel.json selects FastAPI, sets the api.py function limit to 30 seconds,
+adds no-store headers, and explicitly excludes private/legacy/import/test files
+from the function bundle. Existing pyproject.toml still selects api:app.
+Root and frontend .vercelignore exclude databases, backups, private photo files,
+local environment files and development artifacts without deleting local files.
+Frontend vercel.json selects Vite/dist and forwards /exercises, /sets and their
+subpaths before the page fallback; API responses disable caching at both layers.
+No existing application Python/SQL logic, schema, dependencies, or UI changed.
+
+The forwarding origin is deliberately https://incline-api.example.invalid until
+the user creates the backend. Replace all four origins with the intended backend
+before frontend deployment; never point previews at production inadvertently.
+There is no runtime environment-variable interpolation in these static rewrites.
+Region selection is left to the user to match the actual Supabase database.
+
+DEPLOY_CHECKLIST.md contains manual steps for both projects, branch/root choices,
+backend-only versus public variables, restricted pooler credentials, Supabase
+return URLs, manual friends' accounts, signup off, deployment-protection handling,
+preview separation, exclusions, and deployed two-account/phone checks.
+
+All five implementation stages are prepared. Gates 1–4 passed by user reports;
+Gate 5 remains pending the user's deployment and final tests. The agent has not
+created projects, deployed, run cloud SQL, contacted the dev database, or imported
+actual SQLite records. The actual import is still a separate, unapproved action.
+
+Stage 5 validation: 49 offline Python tests passed (including three deployment
+configuration guards); 3 live-project tests were explicitly skipped. All 19
+frontend tests and the production build passed. git diff --check passed.
+These are local/static checks, not proof of live Vercel routing or bundle output;
+the user must perform the deployed checks at Gate 5. No packages were installed.

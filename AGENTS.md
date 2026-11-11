@@ -143,8 +143,9 @@ Caps: exercise name 1–120 characters, weight >0 to 10,000, reps 1–1,000.
 Account deletion cascades through exercises/sets. Initial SQL edits are authorized;
 additional schema changes/deletions need approval. Saved photo files stay untouched.
 
-Current gate: Gates 1–3 passed by user confirmation. Stage 4 importer preparation
-is approved; stop at Gate 4 for the user to run the local dry-run. See
-GATE_4_IMPORT_GUIDE.md. Do not run the actual import, contact the dev project,
-or start Stage 5 without the next approval. Offline tests must keep
-INCLINE_RUN_DEV_TESTS disabled; do not print credentials or inspect saved tokens.
+Current gate: Gates 1–4 passed by user confirmation. Gate 4 local dry-run passed
+with 2 exercises and 8 sets; no actual import has run. Stage 5 deployment
+configuration and DEPLOY_CHECKLIST.md are prepared. STOP at Gate 5: the user
+deploys and reports results; the agent never deploys. Do not run the actual
+import, contact the dev project, or run schema SQL without separate approval.
+Offline tests must keep INCLINE_RUN_DEV_TESTS disabled; never print credentials.

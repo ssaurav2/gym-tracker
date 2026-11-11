@@ -1,0 +1,19 @@
+# Deployment exclusions only: these do not remove local files.
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-*
+**/*.sqlite3-*
+**/.env
+**/.env.*
+backups/
+private/
+.venv/
+**/__pycache__/
+**/node_modules/
+**/.DS_Store
+.git/
+.vercel/
+dist/
+test/

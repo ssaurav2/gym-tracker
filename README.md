@@ -92,3 +92,5 @@ Frontend offline auth/request tests: `npm --prefix frontend test`. These use fak
 clients and requests, not your dev accounts. Real two-account UI checks await Gate 3.
 
 Stage 4 import review and local-only dry-run: [GATE_4_IMPORT_GUIDE.md](GATE_4_IMPORT_GUIDE.md). No import has been run.
+
+Stage 5 manual deployment: [DEPLOY_CHECKLIST.md](DEPLOY_CHECKLIST.md). Configure the backend origin before deploying the frontend; the checked-in origin is a safe placeholder.
