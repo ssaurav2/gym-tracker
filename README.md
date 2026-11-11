@@ -90,3 +90,5 @@ through it every 15 seconds while the logging screen is open. It cycles through 
 
 Frontend offline auth/request tests: `npm --prefix frontend test`. These use fake
 clients and requests, not your dev accounts. Real two-account UI checks await Gate 3.
+
+Stage 4 import review and local-only dry-run: [GATE_4_IMPORT_GUIDE.md](GATE_4_IMPORT_GUIDE.md). No import has been run.

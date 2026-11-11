@@ -207,7 +207,7 @@ It creates empty tables and a NOLOGIN restricted `incline_api` role; backend
 credentials are configured securely later. It grants data access only to that
 backend role, not the browser's anon/authenticated roles. It requires unused
 object names and stops on a rerun rather than replacing existing objects.
-The SQLite import is separate and has not been written or run. The current
+The SQLite import is separate; Stage 4 below records its preparation. It has not been run. The current
 SQLite schema and saved data remain unchanged. No package installation, backend
 connection changes, cloud setup, or deployment has occurred in this step.
 
@@ -247,8 +247,8 @@ saved photo files. Keep secrets out of Git and chat; examples contain placeholde
 | --- | --- | --- |
 | 1 | Review initial SQL; add cascades/caps; write two-user isolation SQL. | User confirmed corrected migration/isolation test passed. Gate 1 passed. |
 | 2 | Postgres pooler, verified tokens, transaction-local identity, owner filters, date/caps, entrypoint, and two-user API tests. | User reported Gate 2 tests passed. Gate 2 passed. |
-| 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | Frontend login, authorized requests, local date, and account clearing implemented. Waiting at Gate 3. |
-| 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Not started. Gate 4: user runs dry-run. |
+| 3 | Login only, publishable key, authorized requests, local logging date, account clearing. | User confirmed two-account manual checks and automated checks passed. Gate 3 passed. |
+| 4 | Reviewed SQLite-copy importer: dry-run default, confirm flag, validation report, counts, ID counters. | Importer, offline tests and guide prepared. Gate 4: waiting for user dry-run. |
 | 5 | Two-project Vercel configs, rewrites before SPA fallback, no-store, exclusions, region guidance, DEPLOY_CHECKLIST.md. | Not started. Gate 5: user deploys; agent never deploys. |
 
 Stage 1 review found/fixed SQL gaps: account and exercise cascade deletion; name
@@ -328,7 +328,7 @@ response; FastAPI's yielded database dependency uses function scope for that rea
 No user .env was read, no dev API/database was contacted, and no cloud SQL ran.
 
 
-## Stage 3 status — implemented, Gate 3 manual checks pending
+## Stage 3 status — Gate 3 passed by user confirmation
 
 The user reported that Gate 2 tests passed and authorized Stage 3. That confirmation
 opens Gate 2; no additional live-project tests were run by the agent in Stage 3.
@@ -359,10 +359,37 @@ dates, same-account refresh, account switches, late bootstrap/replies, failed SD
 session reads, 401/logout, public-only config, and external URL rejection. The
 manual browser checklist is [GATE_3_CHECKLIST.md](GATE_3_CHECKLIST.md).
 
-STOP at Gate 3 until the user confirms the two-account local UI checks. Stage 4
-import work and Stage 5 deployment remain unstarted.
+The user confirmed all Gate 3 two-account checks passed and approved Stage 4
+preparation. Stage 5 deployment remains unstarted.
 
 Stage 3 validation: all 35 offline Python tests and 19 frontend tests passed;
 3 live dev checks were intentionally skipped. The frontend production build and
 git diff --check passed. Frontend tests use fake SDK/fetch objects only. No actual
 account login or live Supabase connection was performed by the agent.
+
+
+## Stage 4 status — prepared, waiting at Gate 4
+
+Gate 3 passed by user confirmation. import_sqlite.py reads only a detached backup,
+validates without repairing, and defaults to local-only dry-run. IMPORT_USER_ID
+assigns every exercise/set to one existing account; original IDs, links, dates,
+and values are preserved. Photo tables/files are ignored. Existing API Python
+and schema/SQL migration logic are unchanged; the new importer uses bound SQL.
+
+An explicit --confirm would use a separate local postgres admin connection on
+5432, block conflicting IDs/names before inserting, skip identical rows on rerun,
+verify full row values and owner/global counts in one transaction, and advance
+ID counters across all users without moving backward. Sequence changes can leave
+safe gaps on rollback. No updates, deletions, schema changes, or cloud access were
+performed. The actual import has NOT run, including against the existing backup.
+
+Offline fixtures test validation, read-only source handling, owner mapping,
+repeatability/conflicts, rollback, counter alignment, and sanitized failures.
+Guide and required placeholder variables: GATE_4_IMPORT_GUIDE.md and .env.example.
+STOP at Gate 4: user runs the local-only dry-run and reports its result. Do not
+run an actual import or begin Stage 5 until the user approves the next work.
+
+Stage 4 validation: 46 offline Python tests passed; 3 live-project tests were
+explicitly skipped. All 19 frontend tests and the production build passed.
+Offline importer tests used disposable fixtures only, never the real backup or
+Supabase. git diff --check passed.
