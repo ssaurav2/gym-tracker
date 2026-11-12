@@ -196,7 +196,7 @@ function App({ request, email, onLogout }) {
     <BrandHeader />
     <div className="account-bar"><span className="account-email">{email}</span><button type="button" className="text-button" onClick={onLogout}>Log out</button></div>
     <main>
-      <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>Look back.<br /><strong>Keep building.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>
+      <div className="page-heading"><p className="eyebrow">{screen === 'log' ? 'SHOW UP. BUILD ON IT.' : screen === 'history' ? 'EVERY SET ADDS UP.' : 'YOUR LIFTS, YOUR WAY.'}</p><h1>{screen === 'log' ? <>Make your<br /><strong>next set count.</strong></> : screen === 'history' ? <>From you,<br /><strong>2000 Years Ago.</strong></> : <>Build your<br /><strong>exercise list.</strong></>}</h1><p className="intro">{screen === 'log' ? <RotatingQuote /> : screen === 'history' ? 'Your logged sets, newest first.' : 'Go-to movements'}</p></div>
       {loadError && <div className="error-banner" role="alert">{loadError}<button type="button" className="text-button" onClick={loadExercises}>Retry</button></div>}
       {screen === 'log' ? <>
         <form className="card log-card" onSubmit={logSet}>
